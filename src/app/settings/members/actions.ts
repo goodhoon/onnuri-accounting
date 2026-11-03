@@ -1,0 +1,6 @@
+"use server";
+import {revalidatePath} from 'next/cache';
+import {requireMember} from '@/lib/session';
+export async function updateMember(_: {error:string;success:string},form:FormData){const s=await requireMember();if(!s.isAdmin)return {error:'관리자 권한이 필요합니다.',success:''};const {error}=await s.db.rpc('assign_member_role',{p_user_id:String(form.get('user_id')),p_role:String(form.get('role')),p_org_unit_id:form.get('org_id')||null});if(error)return {error:'역할을 등록하지 못했습니다. 전체 권한은 관리자·지급 담당자·조회 담당자만 선택할 수 있습니다.',success:''};revalidatePath('/settings/members');return {error:'',success:'계정을 활성화하고 역할을 추가했습니다.'};}
+export async function removeRole(form:FormData){const s=await requireMember();if(!s.isAdmin)throw new Error('접근 권한이 없습니다.');const {error}=await s.db.rpc('remove_member_role',{p_assignment_id:form.get('assignment_id')});if(error)throw new Error('역할을 제거하지 못했습니다. 마지막 관리자 역할은 유지해야 합니다.');revalidatePath('/settings/members');}
+export async function setActive(form:FormData){const s=await requireMember();if(!s.isAdmin)throw new Error('접근 권한이 없습니다.');const {error}=await s.db.rpc('set_member_active',{p_user_id:form.get('user_id'),p_active:form.get('active')==='true'});if(error)throw new Error('상태를 변경하지 못했습니다. 마지막 관리자는 비활성화할 수 없습니다.');revalidatePath('/settings/members');}

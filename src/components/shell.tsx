@@ -1,0 +1,3 @@
+import Link from 'next/link';
+import {logout} from '@/app/login/actions';
+export default function Shell({children,name,admin=false}:{children:React.ReactNode;name:string;admin?:boolean}){return <div className="shell"><aside><Link href="/dashboard" className="brand">O<span>온누리 재정<small>AKL ONNURI</small></span></Link><nav><Link href="/dashboard">개요</Link><Link href="/organizations">교회 조직</Link>{admin&&<><span className="nav-label">관리</span><Link href="/settings/members">사용자 · 권한</Link><Link href="/settings/workflow">결재선 설정</Link></>}</nav><div className="account"><b>{name}</b><form action={logout}><button className="text-button">로그아웃</button></form></div></aside><main className="workspace">{children}</main></div>;}

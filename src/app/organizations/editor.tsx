@@ -1,0 +1,3 @@
+"use client";
+import {useActionState} from 'react';import {renameOrg} from './actions';
+export default function OrgEditor({units}:{units:{id:string;name:string}[]}){const [state,action,pending]=useActionState(renameOrg,{error:'',success:''});return <section className="panel"><h2>조직명 변경</h2><form action={action} className="stack"><label>조직<select name="org_id" required>{units.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label><label>새 이름<input name="name" required maxLength={100}/></label>{state.error&&<p className="error" role="alert">{state.error}</p>}{state.success&&<p role="status">{state.success}</p>}<button disabled={pending}>{pending?'저장 중…':'이름 변경'}</button></form></section>;}

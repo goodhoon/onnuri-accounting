@@ -1,0 +1,3 @@
+"use server";
+import {revalidatePath} from 'next/cache';import {requireMember} from '@/lib/session';
+export async function renameOrg(_: {error:string;success:string},form:FormData){const s=await requireMember();if(!s.isAdmin)return {error:'관리자 권한이 필요합니다.',success:''};const name=String(form.get('name')??'').trim();if(!name||name.length>100)return {error:'조직명은 1~100자로 입력해 주세요.',success:''};const {error}=await s.db.rpc('rename_org',{p_org_id:String(form.get('org_id')),p_name:name});if(error)return {error:'조직명을 변경하지 못했습니다.',success:''};revalidatePath('/organizations');return {error:'',success:'조직명을 변경했습니다.'};}
