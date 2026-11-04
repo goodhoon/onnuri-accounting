@@ -92,3 +92,5 @@ npm run build
 - Day 5: 승인액/지급액/가용예산 분리, 보고서
 - Day 6: 통합·권한·동시 처리·복구 검증
 - Day 7: 클라우드 연결·배포·제한된 사용자 운영 점검
+
+Initial deployment
