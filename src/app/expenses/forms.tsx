@@ -1,7 +1,7 @@
 'use client';
 import { useActionState, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { saveExpense, submitExpense, endExpense, prepareReceipt, finishReceipt, removeReceipt } from './actions';
+import { decideExpense, reviseExpense, saveExpense, submitExpense, endExpense, prepareReceipt, finishReceipt, removeReceipt } from './actions';
 import { browserSupabase } from '@/lib/supabase/client';
 import { receiptBucket, validateReceipt, maxReceipts } from '@/lib/expenses';
 export type BudgetOption = { id: string; label: string; starts: string; ends: string };
@@ -34,7 +34,7 @@ export function SubmitForm({ expense, choices, canSubmit }: { expense: ExpenseDr
     <p>결재선 버전 {choices[0]?.version ?? '—'} · 제출 시 아래 담당자와 단계가 고정됩니다. 본인은 결재 담당자로 선택할 수 없습니다.</p>
     {steps.map(s => <label key={s.step_id}>{s.position}. {s.label}<select name={`assignee_${s.step_id}`} required defaultValue=""><option value="">담당자 선택</option>{choices.filter(c => c.step_id === s.step_id && c.user_id).map(c => <option key={c.user_id} value={c.user_id!}>{c.display_name}</option>)}</select></label>)}
     {missing && <p className="error">지정할 수 있는 담당자가 없는 단계가 있습니다. 관리자가 사용자 · 권한에서 해당 조직 또는 상위 조직의 역할을 먼저 지정해야 합니다.</p>}
-    <p className="small">제출하면 수정·영수증 교체가 잠기고 신청액이 예산에서 예약됩니다. 실제 승인·지급은 Day 4 이후 연결합니다. 수정한 내용은 위에서 먼저 임시저장해 주세요.</p>
+    <p className="small">제출하면 수정·영수증 교체가 잠기고 신청액이 예산에서 예약됩니다. 현재 차례의 승인자에게 앱 내 알림이 생성됩니다. 수정한 내용은 위에서 먼저 임시저장해 주세요.</p>
     {!canSubmit && <p className="small">업로드가 완료된 영수증이 최소 한 개 필요하며, 미완료 첨부가 있으면 제출할 수 없습니다.</p>}
     {state.error && <p role="alert" className="error">{state.error}</p>}
     <button disabled={pending || missing || !canSubmit}>{pending ? '제출 중…' : '지출결의서 제출'}</button>
@@ -67,4 +67,17 @@ export function Receipts({ expenseId, receipts, editable }: { expenseId: string;
     }} /></label>}
     {pending && <p role="status">파일 처리 중… 화면을 닫지 마세요.</p>}{message && <p role="status">{message}</p>}
   </div>;
+}
+
+export function DecisionForm({id,revision,step}:{id:string;revision:number;step:string}) {
+ const [state,action,pending]=useActionState(decideExpense,{error:''});
+ const [decision,setDecision]=useState('approved');
+ return <form action={action} className="stack"><input type="hidden" name="id" value={id}/><input type="hidden" name="revision" value={revision}/><input type="hidden" name="step" value={step}/>
+ <label>처리<select name="decision" value={decision} onChange={e=>setDecision(e.target.value)}><option value="approved">승인</option><option value="rejected">반려</option></select></label>
+ <label>의견 · 반려 사유<textarea name="note" maxLength={1000} required={decision==='rejected'}/></label>
+ {state.error&&<p role="alert" className="error">{state.error}</p>}<button disabled={pending}>{pending?'처리 중…':decision==='approved'?'승인 확정':'반려 확정'}</button></form>;
+}
+export function RevisionForm({id,revision}:{id:string;revision:number}) {
+ const [state,action,pending]=useActionState(reviseExpense,{error:''});
+ return <form action={action}><input type="hidden" name="id" value={id}/><input type="hidden" name="revision" value={revision}/><p>원본을 보존한 새 임시저장 신청서를 만듭니다. 영수증을 다시 첨부하고 제출하세요.</p>{state.error&&<p role="alert" className="error">{state.error}</p>}<button disabled={pending}>수정 재신청 작성</button></form>;
 }

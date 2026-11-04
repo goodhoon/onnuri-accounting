@@ -6,7 +6,7 @@ import { expenseError, receiptBucket, validateReceipt, hasReceiptSignature } fro
 export type ExpenseActionState = { error: string };
 const value = (form: FormData, key: string) => String(form.get(key) ?? '');
 function refresh(id: string) {
-  revalidatePath('/expenses'); revalidatePath(`/expenses/${id}`); revalidatePath('/budgets');
+  revalidatePath('/notifications'); revalidatePath('/', 'layout'); revalidatePath('/expenses'); revalidatePath(`/expenses/${id}`); revalidatePath('/budgets');
 }
 export async function saveExpense(_: ExpenseActionState, form: FormData): Promise<ExpenseActionState> {
   const s = await requireMember();
@@ -61,4 +61,17 @@ export async function removeReceipt(id: string) {
   if (storageError) { refresh(r.expense_id); return { error: '파일 삭제가 완료되지 않았습니다. 삭제 재시도를 눌러 주세요.' }; }
   const { error: finishError } = await s.db.rpc('remove_expense_receipt', { p_id: id, p_finish: true });
   refresh(r.expense_id); return finishError ? { error: expenseError(finishError.message) } : { error: '' };
+}
+
+export async function decideExpense(_: ExpenseActionState, form: FormData): Promise<ExpenseActionState> {
+ const s = await requireMember(), id = value(form, 'id');
+ const { error } = await s.db.rpc('decide_expense', {p_id:id,p_revision:Number(value(form,'revision')),p_step:value(form,'step'),p_decision:value(form,'decision'),p_note:value(form,'note')});
+ if(error) return {error:expenseError(error.message)};
+ refresh(id); redirect(`/expenses/${id}`);
+}
+export async function reviseExpense(_: ExpenseActionState, form: FormData): Promise<ExpenseActionState> {
+ const s=await requireMember();
+ const {data,error}=await s.db.rpc('revise_expense',{p_id:value(form,'id'),p_revision:Number(value(form,'revision'))});
+ if(error) return {error:expenseError(error.message)};
+ refresh(String(data)); redirect(`/expenses/${data}`);
 }

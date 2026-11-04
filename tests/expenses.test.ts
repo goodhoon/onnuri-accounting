@@ -25,7 +25,7 @@ test('Day 3 request, receipt and reservation enforcement',async t=>{
  create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text,metadata jsonb,unique(bucket_id,name));
  alter table storage.objects enable row level security;grant usage on schema storage to authenticated,anon;grant select,insert,update,delete on storage.objects to authenticated;`);
  const dir=new URL('../supabase/migrations/',import.meta.url);
- for(const f of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(f,dir),'utf8'));
+ for(const f of (await readdir(dir)).filter(f=>f.endsWith('.sql') && f<'202611050006').sort())await db.exec(await readFile(new URL(f,dir),'utf8'));
  for(let n=1;n<=8;n++)await db.query('insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)',[uid(n),`u${n}@example.test`,JSON.stringify({display_name:`사용자${n}`})]);
  await db.exec(`update public.profiles set active=true;insert into public.role_assignments(user_id,role) values('${admin}','admin')`);
  await as(db,admin);

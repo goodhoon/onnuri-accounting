@@ -4,7 +4,7 @@ begin;
 do $$
 declare v_id uuid;
 begin
- select id into v_id from auth.users where lower(email)=lower('goodhoon73@gmail.com');
+ select id into v_id from auth.users where lower(email)=lower('REPLACE_WITH_ADMIN_EMAIL');
  if v_id is null then raise exception 'Create the administrator Auth user first and replace the email';end if;
  update public.profiles set active=true where id=v_id;
  if not found then raise exception 'Apply migrations before creating the Auth user';end if;

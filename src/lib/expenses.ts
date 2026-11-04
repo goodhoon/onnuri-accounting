@@ -2,7 +2,7 @@ export const receiptBucket = 'expense-receipts';
 export const maxReceiptBytes = 5 * 1024 * 1024;
 export const maxReceipts = 10;
 export const expenseStates: Record<string, string> = {
-  draft: '임시저장', submitted: '제출 · 결재 대기', withdrawn: '제출 철회', cancelled: '작성 취소',
+  approved: '승인 완료 · 지급 대기', rejected: '반려', draft: '임시저장', submitted: '제출 · 결재 대기', withdrawn: '제출 철회', cancelled: '작성 취소',
 };
 export function expenseNumber(n: number | string) { return `E${String(n).padStart(6, '0')}`; }
 export function receiptExtension(type: string) {
@@ -24,6 +24,11 @@ export function hasReceiptSignature(data: Uint8Array, type: string) {
 }
 export function expenseError(message: string) {
   const rules: Record<string, string> = {
+    'not current approver': '현재 차례의 지정 승인자만 처리할 수 있습니다.',
+    'next assignee unavailable': '다음 담당자의 계정·역할을 관리자가 확인해야 합니다.',
+    'approval already started': '승인이 시작된 신청서는 철회할 수 없습니다.',
+    'rejection reason required': '반려 사유를 입력해 주세요.',
+    'rejected required': '반려된 신청서만 수정 재신청할 수 있습니다.',
     'version conflict': '다른 변경이 먼저 저장됐습니다. 새로고침 후 다시 시도해 주세요.',
     'forbidden': '신청자 권한 또는 본인 신청서인지 확인해 주세요.',
     'draft required': '임시저장 상태에서만 수정하거나 첨부할 수 있습니다.',
