@@ -1,8 +1,8 @@
 export const receiptBucket = 'expense-receipts';
 export const maxReceiptBytes = 5 * 1024 * 1024;
-export const maxReceipts = 10;
+export const maxReceipts = 20;
 export const expenseStates: Record<string, string> = {
-  approved: '승인 완료 · 지급 대기', rejected: '반려', draft: '임시저장', submitted: '제출 · 결재 대기', withdrawn: '제출 철회', cancelled: '작성 취소',
+  paid: '지급 완료', approved: '승인 완료 · 지급 대기', rejected: '반려', draft: '임시저장', submitted: '제출 · 결재 대기', withdrawn: '제출 철회', cancelled: '작성 취소',
 };
 export function expenseNumber(n: number | string) { return `E${String(n).padStart(6, '0')}`; }
 export function receiptExtension(type: string) {
@@ -24,6 +24,14 @@ export function hasReceiptSignature(data: Uint8Array, type: string) {
 }
 export function expenseError(message: string) {
   const rules: Record<string, string> = {
+    'invalid bank account': '뉴질랜드 계좌번호를 15~16자리 숫자 또는 00-0000-0000000-000 형식으로 입력하세요.',
+    'bank details required': '신청자가 예금주·은행명·계좌번호를 먼저 입력해야 합니다.',
+    'bank locked': '제출 후에는 계좌 정보를 변경할 수 없습니다.',
+    'not payment officer': '현재 지정된 지급 담당자만 승인 완료된 신청서를 처리할 수 있습니다. 역할·회계연도 마감 상태도 확인하세요.',
+    'invalid payment date': '지급일은 지출일 이후이며 뉴질랜드 오늘 날짜 이하여야 합니다.',
+    'invalid payment details': '지급 방법과 참조번호·메모 길이를 확인하세요.',
+    'invalid payment selection': '지급할 신청서를 중복 없이 1~100건 선택하세요.',
+    'payment batch conflict': '이미 사용한 지급 묶음 번호입니다. 새로고침 후 지급 기록을 확인하세요.',
     'not current approver': '현재 차례의 지정 승인자만 처리할 수 있습니다.',
     'next assignee unavailable': '다음 담당자의 계정·역할을 관리자가 확인해야 합니다.',
     'approval already started': '승인이 시작된 신청서는 철회할 수 없습니다.',
@@ -39,7 +47,7 @@ export function expenseError(message: string) {
     'insufficient allocation': '신청 금액이 미예약 예산을 초과합니다. 관리자에게 예산을 확인해 주세요.',
     'receipt required': '제출하려면 업로드가 완료된 영수증이 한 개 이상 필요합니다.',
     'receipt unfinished': '완료되지 않은 첨부가 있습니다. 업로드를 완료하거나 해당 첨부를 삭제해 주세요.',
-    'receipt limit': '영수증은 신청서당 최대 10개까지 첨부할 수 있습니다.',
+    'receipt limit': '영수증은 신청서당 최대 20개까지 첨부할 수 있습니다.',
     'receipt missing': '파일이 아직 업로드되지 않았거나 크기·형식이 맞지 않습니다.',
     'workflow changed': '결재선 설정이 변경됐습니다. 새로고침 후 담당자를 다시 선택해 주세요.',
     'assignee': '각 결재 단계에 해당 조직의 역할을 가진 담당자를 선택해 주세요. 본인을 지정할 수 없습니다.',

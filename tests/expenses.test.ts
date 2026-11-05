@@ -25,7 +25,7 @@ test('Day 3 request, receipt and reservation enforcement',async t=>{
  create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text,metadata jsonb,unique(bucket_id,name));
  alter table storage.objects enable row level security;grant usage on schema storage to authenticated,anon;grant select,insert,update,delete on storage.objects to authenticated;`);
  const dir=new URL('../supabase/migrations/',import.meta.url);
- for(const f of (await readdir(dir)).filter(f=>f.endsWith('.sql') && f<'202611050006').sort())await db.exec(await readFile(new URL(f,dir),'utf8'));
+ for(const f of (await readdir(dir)).filter(f=>f.endsWith('.sql') && (f<'202611050006' || f==='202611050007_receipt_limit_20.sql')).sort())await db.exec(await readFile(new URL(f,dir),'utf8'));
  for(let n=1;n<=8;n++)await db.query('insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)',[uid(n),`u${n}@example.test`,JSON.stringify({display_name:`사용자${n}`})]);
  await db.exec(`update public.profiles set active=true;insert into public.role_assignments(user_id,role) values('${admin}','admin')`);
  await as(db,admin);
@@ -110,8 +110,8 @@ test('Day 3 request, receipt and reservation enforcement',async t=>{
   await db.exec('reset role');await db.query("update storage.objects set metadata=$1 where name=$2",[JSON.stringify({size:100,mimetype:'text/html'}),r.object_path]);await as(db,applicant);
   await assert.rejects(async()=>db.query('select public.finish_expense_receipt($1)',[r.id]),/receipt missing/);
  });
- await t.test('첨부 한도·미완료 첨부 취소 방지',async()=>{
-  await save(uid(106),0,'1');for(let i=0;i<10;i++)await db.query("select * from public.prepare_expense_receipt($1,'a.pdf','application/pdf',1)",[uid(106)]);
+ await t.test('20개 허용·21번째 차단·미완료 첨부 취소 방지',async()=>{
+  await save(uid(106),0,'1');for(let i=0;i<20;i++)await db.query("select * from public.prepare_expense_receipt($1,'a.pdf','application/pdf',1)",[uid(106)]);
   await assert.rejects(async()=>db.query("select * from public.prepare_expense_receipt($1,'a.pdf','application/pdf',1)",[uid(106)]),/receipt limit/);
   await assert.rejects(async()=>db.query("select public.end_expense($1,$2,'cancelled','미완료 첨부')",[uid(106),await rev(uid(106))]),/receipt unfinished/);
  });

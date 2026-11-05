@@ -32,7 +32,7 @@ test('Day 4 sequential approval, rejection, resubmission and notifications',asyn
  async function held(){return String((await db.query<any>('select * from public.expense_budget_status($1)',[budget])).rows[0].reserved);}
  // A real Day 3 submission exists before applying the Day 4 migration.
  const legacy=await draft(101);await attach(legacy);await submit(legacy);
- await db.exec('reset role');for(const f of files.filter(f=>f>='202611050006'))await db.exec(await readFile(new URL(f,dir),'utf8'));
+ await db.exec('reset role');for(const f of files.filter(f=>f>='202611050006' && f<'202611050008'))await db.exec(await readFile(new URL(f,dir),'utf8'));
  await t.test('기존 제출 건을 보존하고 첫 단계만 시작·알림 생성',async()=>{
   await as(db,leader);assert.equal(await scalar(db,'select status from public.expense_requests where id=$1',[legacy]),'submitted');assert.equal((await pending(legacy)).role,'team_leader');assert.equal(await scalar(db,'select count(*)::int from public.notifications'),1);
   await as(db,head);assert.equal(await scalar(db,'select count(*)::int from public.notifications'),0);assert.equal(await scalar(db,'select public.expense_can_decide($1)',[legacy]),false);

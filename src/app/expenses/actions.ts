@@ -10,10 +10,11 @@ function refresh(id: string) {
 }
 export async function saveExpense(_: ExpenseActionState, form: FormData): Promise<ExpenseActionState> {
   const s = await requireMember();
-  const { data, error } = await s.db.rpc('save_expense', {
+  const { data, error } = await s.db.rpc('save_expense_with_bank', {
     p_id: value(form, 'id'), p_revision: Number(value(form, 'revision')), p_budget: value(form, 'budget'),
     p_title: value(form, 'title'), p_description: value(form, 'description'), p_payee: value(form, 'payee'),
     p_date: value(form, 'spent_on'), p_amount: value(form, 'amount'),
+    p_holder:value(form,'holder'),p_bank:value(form,'bank_name'),p_account:value(form,'account_number'),
   });
   if (error) return { error: expenseError(error.message) };
   refresh(String(data)); redirect(`/expenses/${data}?saved=1`);
@@ -74,4 +75,11 @@ export async function reviseExpense(_: ExpenseActionState, form: FormData): Prom
  const {data,error}=await s.db.rpc('revise_expense',{p_id:value(form,'id'),p_revision:Number(value(form,'revision'))});
  if(error) return {error:expenseError(error.message)};
  refresh(String(data)); redirect(`/expenses/${data}`);
+}
+
+export async function saveBank(_:ExpenseActionState,form:FormData):Promise<ExpenseActionState>{
+ const s=await requireMember(),id=value(form,'id');
+ const {error}=await s.db.rpc('save_expense_bank',{p_id:id,p_revision:Number(value(form,'revision')),p_holder:value(form,'holder'),p_bank:value(form,'bank_name'),p_account:value(form,'account_number')});
+ if(error)return {error:expenseError(error.message)};
+ refresh(id);redirect(`/expenses/${id}`);
 }
