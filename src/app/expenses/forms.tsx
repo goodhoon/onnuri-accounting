@@ -6,7 +6,7 @@ import { browserSupabase } from '@/lib/supabase/client';
 import { receiptBucket, validateReceipt, maxReceipts } from '@/lib/expenses';
 export type BudgetOption = { id: string; label: string; starts: string; ends: string };
 export type ExpenseDraft = { id: string; revision: number; budget_line_id: string; title: string; description: string; payee_name: string; spent_on: string; amount: string | number };
-export type ApproverChoice = { step_id: string; position: number; label: string; user_id: string | null; display_name: string | null; version: number; version_id: string };
+export type ApproverChoice = { step_id: string; position: number; label: string; role: string; user_id: string | null; display_name: string | null; version: number; version_id: string };
 export type ReceiptRow = { id: string; original_name: string; mime_type: string; byte_size: number; state: string };
 export type BankDetails={holder:string;bank_name:string;account_number:string};
 export function BankFields({bank}:{bank?:BankDetails|null}){return <><label>예금주<input name="holder" required maxLength={100} defaultValue={bank?.holder}/></label><label>은행명<input name="bank_name" required maxLength={100} defaultValue={bank?.bank_name}/></label><label>뉴질랜드 계좌번호<input name="account_number" required inputMode="numeric" maxLength={24} defaultValue={bank?.account_number} placeholder="00-0000-0000000-000" autoComplete="off"/></label><p className="small">실제 지급받을 계좌를 확인해 입력하세요. 계좌 소유 여부는 은행에서 별도로 확인해야 합니다. 제출 후에는 변경할 수 없습니다.</p></>;}
@@ -30,12 +30,27 @@ export function ExpenseForm({ id, budgets, draft,bank }: { id: string; budgets: 
 export function SubmitForm({ expense, choices, canSubmit }: { expense: ExpenseDraft; choices: ApproverChoice[]; canSubmit: boolean }) {
   const [state, action, pending] = useActionState(submitExpense, { error: '' });
   const steps = [...new Map(choices.map(c => [c.step_id, c])).values()];
-  const missing = !steps.length || steps.some(s => !choices.some(c => c.step_id === s.step_id && c.user_id));
+  const isQuorum = (step: ApproverChoice) => step.role === 'vision_member' && Number(expense.amount) > 500;
+  const candidates = (step: ApproverChoice) => choices.filter(c => c.step_id === step.step_id && c.user_id);
+  const missing = !steps.length || steps.some(step => candidates(step).length < (isQuorum(step) ? 2 : 1));
   return <form action={action} className="stack">
     <input type="hidden" name="id" value={expense.id} /><input type="hidden" name="revision" value={expense.revision} /><input type="hidden" name="workflow" value={choices[0]?.version_id ?? ''} />
-    <p>결재선 버전 {choices[0]?.version ?? '—'} · 제출 시 아래 담당자와 단계가 고정됩니다. 본인은 결재 담당자로 선택할 수 없습니다.</p>
-    {steps.map(s => <label key={s.step_id}>{s.position}. {s.label}<select name={`assignee_${s.step_id}`} required defaultValue=""><option value="">담당자 선택</option>{choices.filter(c => c.step_id === s.step_id && c.user_id).map(c => <option key={c.user_id} value={c.user_id!}>{c.display_name}</option>)}</select></label>)}
-    {missing && <p className="error">지정할 수 있는 담당자가 없는 단계가 있습니다. 관리자가 사용자 · 권한에서 해당 조직 또는 상위 조직의 역할을 먼저 지정해야 합니다.</p>}
+    <p>저장된 신청 금액에 따라 결재 단계가 정해집니다. 제출할 때 결재 담당자가 고정됩니다.</p>
+    {steps.map(step => isQuorum(step) ? (
+      <div key={step.step_id}>
+        <b>{step.label} · 서로 다른 2명 승인</b>
+        <p className="small">해당 단계에서 승인 자격이 있는 등록 위원 모두에게 알립니다.</p>
+        <ul>{candidates(step).map(member => <li key={member.user_id}>{member.display_name}</li>)}</ul>
+      </div>
+    ) : (
+      <label key={step.step_id}>{step.label}
+        <select name={`assignee_${step.step_id}`} required defaultValue="">
+          <option value="">담당자 선택</option>
+          {candidates(step).map(member => <option key={member.user_id} value={member.user_id!}>{member.display_name}</option>)}
+        </select>
+      </label>
+    ))}
+    {missing && <p className="error">승인 자격이 있는 담당자가 부족합니다. 관리자가 사용자 · 권한에서 해당 조직 또는 상위 조직의 역할을 먼저 지정해야 합니다.</p>}
     <p className="small">제출하면 수정·영수증 교체가 잠기고 신청액이 예산에서 예약됩니다. 현재 차례의 승인자에게 앱 내 알림이 생성됩니다. 수정한 내용은 위에서 먼저 임시저장해 주세요.</p>
     {!canSubmit && <p className="small">업로드가 완료된 영수증이 최소 한 개 필요하며, 미완료 첨부가 있으면 제출할 수 없습니다.</p>}
     {state.error && <p role="alert" className="error">{state.error}</p>}

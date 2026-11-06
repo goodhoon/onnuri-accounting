@@ -24,6 +24,7 @@ export function hasReceiptSignature(data: Uint8Array, type: string) {
 }
 export function expenseError(message: string) {
   const rules: Record<string, string> = {
+    'vision quorum unavailable': '승인 가능한 비전위원이 2명 이상 필요합니다. 관리자에게 권한 설정을 확인해 주세요.',
     'invalid bank account': '뉴질랜드 계좌번호를 15~16자리 숫자 또는 00-0000-0000000-000 형식으로 입력하세요.',
     'bank details required': '신청자가 예금주·은행명·계좌번호를 먼저 입력해야 합니다.',
     'bank locked': '제출 후에는 계좌 정보를 변경할 수 없습니다.',

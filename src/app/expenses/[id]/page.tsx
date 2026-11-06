@@ -32,7 +32,7 @@ export default async function ExpenseDetail({ params, searchParams }: { params: 
   const balance = balances?.[0];
   const {data:canDecide,error:decisionError}=await s.db.rpc('expense_can_decide',{p_id:id});
   if(decisionError) throw new Error('승인 권한 조회 실패');
-  const current=sr.data?.find(step=>step.decision==='pending');
+  const current=sr.data?.find(step=>step.decision==='pending' && step.assignee_id===s.user.id);
   const decisions:Record<string,string>={waiting:'순서 대기',pending:'현재 처리 대기',approved:'승인',rejected:'반려',paid:'지급 완료',skipped:'진행 중단'};
   return <Shell name={s.profile.display_name} admin={s.isAdmin}>
     <header><div className="eyebrow">{expenseNumber(e.request_no)}</div><h1>{e.title}</h1><span className="badge">{expenseStates[e.status]}</span><p><Link href="/expenses">신청 목록으로 →</Link></p></header>
@@ -44,7 +44,7 @@ export default async function ExpenseDetail({ params, searchParams }: { params: 
     {payment&&<section className="panel"><h2>지급 기록</h2><p>지급일 {payment.paid_on} · {payment.method==='bank_transfer'?'계좌이체':payment.method==='cash'?'현금':'기타'} · {money(payment.amount)} NZD</p><p>은행 참조번호: {payment.bank_reference||'미입력'}</p><p className="small">앱 지급 묶음 ID: {payment.batch_id}</p></section>}
     {canPay&&<section className="notice"><p>지정된 지급 담당자입니다. 계좌와 실제 송금 결과를 확인한 후 기록하세요.</p><Link href={`/payments?expense=${id}`}>이 신청서 지급 기록하기 →</Link></section>}
     <section className="panel"><h2>영수증 첨부</h2><Receipts expenseId={id} receipts={receipts} editable={editable} /></section>
-    {editable ? <section className="panel"><h2>결재 담당자 확인 · 제출</h2><SubmitForm expense={e} choices={choices} canSubmit={receipts.some(r => r.state === 'ready') && !receipts.some(r => ['pending', 'removing'].includes(r.state))} /></section> : (sr.data?.length ? <section className="panel"><h2>제출 당시 결재선 · 담당자</h2><ol className="snapshot-list">{sr.data.map(step => <li key={step.id}><b>{step.label}</b><span className="small">담당자: {step.assignee_name} · {decisions[step.decision] ?? step.decision}{step.decided_at && ` · ${new Date(step.decided_at).toLocaleString('ko-KR', {timeZone:'Pacific/Auckland'})}`}{step.decision_note && ` · ${step.decision_note}`}</span></li>)}</ol></section> : null)}
+    {editable ? <section className="panel"><h2>결재 담당자 확인 · 제출</h2><SubmitForm expense={e} choices={choices} canSubmit={receipts.some(r => r.state === 'ready') && !receipts.some(r => ['pending', 'removing'].includes(r.state))} /></section> : (sr.data?.length ? <section className="panel"><h2>제출 당시 결재선 · 담당자</h2>{sr.data.some(step => step.vision_quorum) && <p>비전위원 승인 {sr.data.filter(step => step.vision_quorum && step.decision === 'approved').length}/2</p>}<ol className="snapshot-list">{sr.data.map(step => <li key={step.id}><b>{step.label}</b><span className="small">담당자: {step.assignee_name} · {decisions[step.decision] ?? step.decision}{step.decided_at && ` · ${new Date(step.decided_at).toLocaleString('ko-KR', {timeZone:'Pacific/Auckland'})}`}{step.decision_note && ` · ${step.decision_note}`}</span></li>)}</ol></section> : null)}
     {canDecide && current && <section className="panel"><h2>{current.label} · 결재 처리</h2><DecisionForm id={id} revision={e.revision} step={current.id}/></section>}
     {e.status==='approved' && <p className="notice">승인이 완료되어 지급 대기 중입니다. 지급 담당자가 실제 송금 결과를 확인한 후 지급 관리에서 기록할 수 있습니다.</p>}
     {own && e.status==='rejected' && <section className="panel"><h2>수정 재신청</h2><RevisionForm id={id} revision={e.revision}/></section>}
